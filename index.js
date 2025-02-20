@@ -53,7 +53,7 @@ const BusRoute = mongoose.model("Bus_routes", busRouteSchema);
 
 // Routes
 app.get("/", (req, res) => {
-  res.send("AMTS API Running...");
+  res.send("AMTS BUS API Running...");
 });
 
 // Fetch Bus Stops (Query with optional stopId)
