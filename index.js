@@ -111,5 +111,5 @@ app.post("/bus_routes", async (req, res) => {
 
 // Start Server
 app.listen(port, () => {
-  console.log(`Server running on https://cbt-backend-pbqg.onrender.com`);
+  console.log(`Server running on https://cbt-backend-02ce.onrender.com/`);
 });
