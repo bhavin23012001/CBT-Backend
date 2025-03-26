@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:  # 🔥 Add this line to allow manual triggering
 
 jobs:
   build-test:
@@ -12,15 +13,12 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
       - name: Set Up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
-
       - name: Install Dependencies
         run: npm install
-
       - name: Run Tests
         run: npm test
 
@@ -30,19 +28,16 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Setup .NET 6.0
+      - name: Setup .NET 6.0 (Required for Dependency Check)
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '6.0.x'
-
       - name: Run OWASP Dependency Check
         run: |
           curl -LO https://github.com/jeremylong/DependencyCheck/releases/download/v8.3.1/dependency-check-8.3.1-release.zip
           unzip dependency-check-8.3.1-release.zip
           mkdir -p security-reports
           ./dependency-check/bin/dependency-check.sh --project "CBT-Backend" --scan . --format "ALL" --out security-reports/
-
       - name: Upload Security Report
         uses: actions/upload-artifact@v4
         with:
@@ -55,7 +50,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
       - name: Deploy to AWS EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -64,7 +58,7 @@ jobs:
           key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           script: |
             sudo systemctl stop cbt-backend || true
-            cd ~/CBT-Backend || git clone https://github.com/Bhavin2301/CBT-Backend CBT-Backend
+            cd ~/CBT-Backend || git clone <repo-url> CBT-Backend
             cd CBT-Backend
             git pull origin main
             npm install
