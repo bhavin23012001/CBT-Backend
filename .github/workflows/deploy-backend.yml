@@ -1,3 +1,4 @@
+### BACKEND WORKFLOW (CBT-Backend)
 name: Deploy Node.js Backend
 
 on:
@@ -30,7 +31,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET 6.0 (Required for Dependency Check)
+      - name: Setup .NET 6.0
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '6.0.x'
@@ -63,7 +64,7 @@ jobs:
           key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           script: |
             sudo systemctl stop cbt-backend || true
-            cd ~/CBT-Backend || git clone <repo-url> CBT-Backend
+            cd ~/CBT-Backend || git clone https://github.com/Bhavin2301/CBT-Backend CBT-Backend
             cd CBT-Backend
             git pull origin main
             npm install
