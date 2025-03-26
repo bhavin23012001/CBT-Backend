@@ -23,8 +23,28 @@ jobs:
       - name: Run Tests
         run: npm test
 
-  deploy:
+  security-scan:
+    runs-on: ubuntu-latest
     needs: build-test
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run OWASP Dependency Check
+        run: |
+          curl -LO https://github.com/jeremylong/DependencyCheck/releases/download/v8.3.1/dependency-check-8.3.1-release.zip
+          unzip dependency-check-8.3.1-release.zip
+          mkdir -p security-reports
+          ./dependency-check/bin/dependency-check.sh --project "CBT-Backend" --scan . --format "ALL" --out security-reports/
+
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: OWASP-Dependency-Check-Report
+          path: security-reports/
+
+  deploy:
+    needs: security-scan
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to AWS EC2
@@ -34,7 +54,9 @@ jobs:
           username: ec2-user
           key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           script: |
+            sudo systemctl stop cbt-backend || true
             cd CBT-Backend
             git pull origin main
             npm install
-            pm2 restart CBT-Backend
+            npm run build
+            sudo systemctl start cbt-backend
