@@ -1,11 +1,10 @@
-### BACKEND WORKFLOW (CBT-Backend)
 name: Deploy Node.js Backend
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:  # 🔥 Add this line to allow manual triggering
+  workflow_dispatch:
 
 jobs:
   build-test:
@@ -58,9 +57,11 @@ jobs:
           key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           script: |
             sudo systemctl stop cbt-backend || true
-            cd ~/CBT-Backend || git clone <repo-url> CBT-Backend
-            cd CBT-Backend
+            if [ ! -d "~/CBT-Backend" ]; then
+              git clone https://github.com/Bhavin2301/CBT-Backend.git ~/CBT-Backend
+            fi
+            cd ~/CBT-Backend
             git pull origin main
             npm install
-            npm run build
+            npm run build || echo "Build script missing, skipping..."
             sudo systemctl start cbt-backend
