@@ -4,7 +4,7 @@ const cors = require("cors");
 require("dotenv").config(); // Load environment variables
 
 const app = express();
-const port = process.env.PORT || 8080;
+const port = 3000;
 
 // Database Connection
 mongoose.connect(process.env.MONGO_URI, {
@@ -110,6 +110,6 @@ app.post("/bus_routes", async (req, res) => {
 });
 
 // Start Server
-app.listen(port, () => {
-  console.log(`Server running on http://54.236.128.72:3000/`);
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Server running on http://54.236.128.72:${port}/`);
 });
