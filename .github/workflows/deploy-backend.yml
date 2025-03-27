@@ -1,5 +1,3 @@
-### delpoy-backend.yml
-
 name: Deploy Node.js Backend
 
 on:
@@ -14,12 +12,16 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
       - name: Set Up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
+          cache: 'npm'
+
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
+
       - name: Run Tests
         run: npm test
 
@@ -29,19 +31,14 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Install .NET 6 (For OWASP Dependency Check)
+
+      - name: Run OWASP Dependency Check (Using Docker)
         run: |
-          sudo apt-get update
-          wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-          sudo dpkg -i packages-microsoft-prod.deb
-          sudo apt-get update
-          sudo apt-get install -y dotnet-sdk-6.0
-      - name: Run OWASP Dependency Check
-        run: |
-          curl -LO https://github.com/jeremylong/DependencyCheck/releases/download/v8.3.1/dependency-check-8.3.1-release.zip
-          unzip dependency-check-8.3.1-release.zip
-          mkdir -p security-reports
-          ./dependency-check/bin/dependency-check.sh --project "CBT-Backend" --scan . --format "ALL" --out security-reports/
+          docker run --rm \
+            -v $(pwd):/src \
+            owasp/dependency-check \
+            --project "CBT-Backend" --scan /src --format "ALL" --out security-reports/
+
       - name: Upload Security Report
         uses: actions/upload-artifact@v4
         with:
@@ -54,6 +51,7 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
       - name: Deploy to AWS EC2
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -61,23 +59,36 @@ jobs:
           username: ec2-user
           key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           script: |
+            # Stop service if running
             sudo systemctl stop cbt-backend || true
+
+            # Clone repo if not exists
             if [ ! -d "/home/ec2-user/CBT-Backend" ]; then
               git clone https://github.com/Bhavin2301/CBT-Backend.git /home/ec2-user/CBT-Backend
             fi
+
+            # Pull latest changes
             cd /home/ec2-user/CBT-Backend
             git reset --hard
             git pull origin main
-            npm install
-            if grep -q '"build"' package.json; then
+
+            # Install dependencies
+            npm ci
+
+            # Run build if script exists
+            if jq -e '.scripts.build' package.json >/dev/null; then
               npm run build
             else
               echo "No build script found, skipping..."
             fi
+
+            # Check if systemd service exists
             if [ ! -f "/etc/systemd/system/cbt-backend.service" ]; then
-              echo "Systemd service file missing. Please create it manually."
+              echo "Error: Systemd service file missing. Please create it manually."
               exit 1
             fi
+
+            # Restart the service
             sudo systemctl daemon-reload
             sudo systemctl start cbt-backend
             sudo systemctl enable cbt-backend
