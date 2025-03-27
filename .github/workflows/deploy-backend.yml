@@ -1,3 +1,6 @@
+### delpoy-backend.yml
+
+```yaml
 name: Deploy Node.js Backend
 
 on:
@@ -27,6 +30,13 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+      - name: Install .NET 6 (For OWASP Dependency Check)
+        run: |
+          sudo apt-get update
+          wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          sudo apt-get update
+          sudo apt-get install -y dotnet-sdk-6.0
       - name: Run OWASP Dependency Check
         run: |
           curl -LO https://github.com/jeremylong/DependencyCheck/releases/download/v8.3.1/dependency-check-8.3.1-release.zip
@@ -52,38 +62,23 @@ jobs:
           username: ec2-user
           key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           script: |
-            # Stop the existing service (ignore errors if not running)
             sudo systemctl stop cbt-backend || true
-            
-            # Ensure the repository is in the correct location
             if [ ! -d "/home/ec2-user/CBT-Backend" ]; then
               git clone https://github.com/Bhavin2301/CBT-Backend.git /home/ec2-user/CBT-Backend
             fi
-
-            # Navigate to the backend folder
             cd /home/ec2-user/CBT-Backend
-
-            # Ensure the latest code is pulled
             git reset --hard
             git pull origin main
-
-            # Install dependencies
             npm install
-
-            # Check if "build" script exists in package.json before running
             if grep -q '"build"' package.json; then
               npm run build
             else
               echo "No build script found, skipping..."
             fi
-
-            # Ensure systemd service exists
             if [ ! -f "/etc/systemd/system/cbt-backend.service" ]; then
               echo "Systemd service file missing. Please create it manually."
               exit 1
             fi
-
-            # Reload systemd and restart the service
             sudo systemctl daemon-reload
             sudo systemctl start cbt-backend
             sudo systemctl enable cbt-backend
