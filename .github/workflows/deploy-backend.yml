@@ -32,22 +32,25 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Java (Required for OWASP Dependency Check)
-        run: sudo apt-get install -y openjdk-17-jdk
+        run: sudo apt-get install -y openjdk-17-jdk unzip
 
-      - name: Install OWASP Dependency Check
+      - name: Install OWASP Dependency-Check
         run: |
           mkdir -p dependency-check
-          curl -L https://github.com/jeremylong/DependencyCheck/releases/download/v10.0.2/dependency-check-10.0.2-release.zip -o dependency-check.zip
-          unzip dependency-check.zip -d dependency-check
-          mv dependency-check/dependency-check/* dependency-check/
-
+          curl -sLO https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.2/dependency-check-8.4.2-release.zip
+          unzip -o dependency-check-8.4.2-release.zip -d dependency-check
+          chmod +x dependency-check/dependency-check/bin/dependency-check.sh
 
       - name: Clear Old Dependency Check Data (If Exists)
         run: rm -rf dependency-check/data
 
       - name: Run OWASP Dependency Check
         run: |
-          dependency-check/dependency-check/bin/dependency-check.sh --project "NodeJS Backend" --scan . --format "HTML" --out reports
+          dependency-check/dependency-check/bin/dependency-check.sh \
+            --project "NodeJS Backend" \
+            --scan . \
+            --format "HTML" \
+            --out reports
 
       - name: Upload Dependency Check Report
         uses: actions/upload-artifact@v4
@@ -69,23 +72,38 @@ jobs:
           username: ec2-user
           key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           script: |
-            sudo systemctl stop cbt-backend || true
+            echo "Stopping existing service..."
+            sudo systemctl stop cbt-backend || echo "Service not running, continuing..."
+
+            echo "Cloning/updating repository..."
             if [ ! -d "/home/ec2-user/CBT-Backend" ]; then
               git clone https://github.com/Bhavin2301/CBT-Backend.git /home/ec2-user/CBT-Backend
             fi
             cd /home/ec2-user/CBT-Backend
+
+            echo "Resetting and pulling latest changes..."
             git reset --hard
             git pull origin main
+
+            echo "Installing dependencies..."
             npm install
+
+            echo "Checking for build script..."
             if grep -q '"build"' package.json; then
               npm run build
             else
               echo "No build script found, skipping..."
             fi
+
+            echo "Verifying systemd service file..."
             if [ ! -f "/etc/systemd/system/cbt-backend.service" ]; then
-              echo "Systemd service file missing. Please create it manually."
+              echo "ERROR: Systemd service file missing. Please create it manually."
               exit 1
             fi
+
+            echo "Reloading systemd and starting service..."
             sudo systemctl daemon-reload
             sudo systemctl start cbt-backend
             sudo systemctl enable cbt-backend
+
+            echo "Deployment completed successfully!"
