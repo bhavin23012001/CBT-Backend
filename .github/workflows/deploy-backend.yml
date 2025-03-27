@@ -1,6 +1,5 @@
 ### delpoy-backend.yml
 
-```yaml
 name: Deploy Node.js Backend
 
 on:
