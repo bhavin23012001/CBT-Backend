@@ -39,6 +39,7 @@ jobs:
           mkdir -p dependency-check
           curl -L https://github.com/jeremylong/DependencyCheck/releases/download/v10.0.2/dependency-check-10.0.2-release.zip -o dependency-check.zip
           unzip dependency-check.zip -d dependency-check
+          mv dependency-check/dependency-check-* dependency-check/dependency-check
           rm dependency-check.zip
 
       - name: Clear Old Dependency Check Data (If Exists)
@@ -46,7 +47,7 @@ jobs:
 
       - name: Run OWASP Dependency Check
         run: |
-          dependency-check/bin/dependency-check.sh --project "NodeJS Backend" --scan . --format "HTML" --out reports
+          dependency-check/dependency-check/bin/dependency-check.sh --project "NodeJS Backend" --scan . --format "HTML" --out reports
 
       - name: Upload Dependency Check Report
         uses: actions/upload-artifact@v4
