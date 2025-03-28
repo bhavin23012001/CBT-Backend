@@ -34,6 +34,12 @@ jobs:
       - name: Install Java (Required for OWASP Dependency Check)
         run: sudo apt-get install -y openjdk-17-jdk unzip
 
+      - name: Install .NET 6.0 SDK (Required for Dependency-Check)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dotnet-sdk-6.0
+          dotnet --version
+
       - name: Install OWASP Dependency-Check
         run: |
           mkdir -p dependency-check
@@ -57,7 +63,6 @@ jobs:
         with:
           name: security-report
           path: reports
-
   deploy:
     needs: security-scan
     runs-on: ubuntu-latest
