@@ -44,6 +44,13 @@ jobs:
           sudo apt-get install -y dotnet-sdk-6.0
           dotnet --version
 
+
+      - name: Install .NET 6.0 SDK (Required for Dependency-Check)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dotnet-sdk-6.0
+          dotnet --version
+
       - name: Install OWASP Dependency-Check
         run: |
           mkdir -p dependency-check
@@ -51,31 +58,22 @@ jobs:
           unzip -o dependency-check-8.4.2-release.zip -d dependency-check
           chmod +x dependency-check/dependency-check/bin/dependency-check.sh
 
-      - name: Preload Cached Database
-        run: |
-          mkdir -p dependency-check/data
-          if [ ! -f dependency-check/data/data.tar.zst ]; then
-            echo "Downloading NVD data for caching..."
-            wget -q https://github.com/jeremylong/DependencyCheckData/releases/latest/download/data.tar.zst -O dependency-check/data/data.tar.zst
-            tar --zstd -xf dependency-check/data/data.tar.zst -C dependency-check/data
-          fi
+      - name: Clear Old Dependency Check Data (If Exists)
+        run: rm -rf dependency-check/data
 
-      - name: Run OWASP Dependency Check with Cached Database
+      - name: Run OWASP Dependency Check
         run: |
           dependency-check/dependency-check/bin/dependency-check.sh \
             --project "NodeJS Backend" \
             --scan . \
             --format "HTML" \
-            --out reports \
-            --data dependency-check/data \
-            --cacheValidForHours 24
+            --out reports
 
       - name: Upload Dependency Check Report
         uses: actions/upload-artifact@v4
         with:
           name: security-report
           path: reports
-
   deploy:
     needs: security-scan
     runs-on: ubuntu-latest
